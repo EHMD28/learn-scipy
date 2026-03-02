@@ -1,0 +1,41 @@
+scaling_factor = ε0 in J/m^3
+
+function P'(P_nu):
+    return P_nu / scaling_factor
+
+function eos_epsilon'(P'):
+    gamma = ...
+    return (P / K') ^ (1 / gamma)
+
+function scale_P_to_dimensionless(P'):
+    return P' / scaling_factor
+
+function scale_r_to_nu(r'): # in km
+    r_meters = r' / (G*scaling_factor)^(1/2)
+    return r_meters / 1000 # convert to km #  
+
+function scale_m_to_nu(m'): # in solar masses
+    mass_kg = m' / (G^3 * scaling_factor)^(1/2)
+    return mass_kg / mass_of_sun
+
+mass_radius_points = []
+
+def solve_tov(p_c):
+    r_0 = small number
+    m_0 = mass(small_number)
+    dm_dr = ...
+    dp_dr = ...
+    solve_ivp(dp_dr, dm_dr) until P = 0
+    outer_radius = max(r_solutions)
+    total_mass = max(m_solutions)
+    return outer_radius and total_mass
+
+for p_c in CENTRAL_PRESSURE_RANGE:
+    p_c' = scale_P_to_dimensionless(p_c)
+    r', m' = solve_tov(p_c)
+    r = scale_r_to_nu(r')
+    m = scale_m_to_nu(m')
+    add (r, m) to mass_radius_points
+
+# Plots the mass radius curve in meaningful, geometric units #
+plot(mass_radius_points)
