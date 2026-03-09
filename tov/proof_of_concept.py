@@ -2,12 +2,22 @@ from scipy.integrate import solve_ivp
 from scipy.constants import pi
 import numpy as np
 
+EPSILON_0 = 150  # MeV/fm^3
 KAPPA = 1.0
 GAMMA = 2.0
+KAPPA_PRIME = KAPPA * (EPSILON_0 ** (GAMMA - 1))
+
+
+@np.vectorize
+def mass_nu(m_prime): ...
+
+
+@np.vectorize
+def radius_nu(r_prime): ...
 
 
 def eos_epsilon(p):
-    return (p / KAPPA) ** (1 / GAMMA)
+    return (p / KAPPA_PRIME) ** (1 / GAMMA)
 
 
 def tov_rhs(r, state):
@@ -51,6 +61,8 @@ def solve_tov(p_c) -> tuple[float, float]:
 def main():
     p_c = 100
     r, m = solve_tov(p_c)
+    r = radius_nu(r)
+    m = mass_nu(m)
     print(f"{r=} {m=}")
 
 
