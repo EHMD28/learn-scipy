@@ -1,19 +1,53 @@
+from math import log10, sqrt
+
 from scipy.integrate import solve_ivp
 from scipy.constants import pi
 import numpy as np
 
+EPSILON_0_MEV_PER_FM3 = 150
 # Conversion factor to convert from MeV/fm^3 to M☉/km^3
 MEV_PER_FM3_TO_SM_PER_KM_3 = 8.96498313e-7
-EPSILON_0_MEV_PER_FM3 = 150
 EPSILON_0 = EPSILON_0_MEV_PER_FM3 * MEV_PER_FM3_TO_SM_PER_KM_3  # M☉/km^3
-# G_NU = 1.3271244002e11  # km^3 / (M☉ * s^2)
-G_NU = 1.47662504  # km / M☉
-a = 1 / np.sqrt(G_NU * EPSILON_0)
-b = 1 / np.sqrt(G_NU**3 * EPSILON_0)
-KAPPA = 4.80307467e-5  # Units to cancel out ε^γ to MeV/fm^3.
-# GAMMA = 2.048315956
-GAMMA = 2.4
-KAPPA_PRIME = KAPPA * (EPSILON_0_MEV_PER_FM3 ** (GAMMA - 1))
+
+
+@np.vectorize
+def scale_mev_fm3_to_sm_km3(quantity: float) -> float:
+    return quantity * MEV_PER_FM3_TO_SM_PER_KM_3
+
+
+def gamma(point1: tuple[float, float], point2: tuple[float, float]):
+    eps1, p1 = point1
+    eps2, p2 = point2
+    quantities = [eps1, eps2, p1, p2]
+    [eps1, eps2, p1, p2] = scale_mev_fm3_to_sm_km3(quantities)
+    return log10(p2 / p1) / log10(eps2 / eps1)
+
+
+def kappa(point: tuple[float, float], gamma: float):
+    eps, p = point
+    p = p * MEV_PER_FM3_TO_SM_PER_KM_3
+    eps = eps * MEV_PER_FM3_TO_SM_PER_KM_3
+    return p / (eps**gamma)
+
+
+def kappa_prime(kappa, gamma):
+    return kappa * (EPSILON_0 ** (gamma - 1))
+
+
+EOS_POINT_1 = (100, 0.6)  # (ε, P) in MeV/fm^3
+EOS_POINT_2 = (180, 2)  # (ε, P) in MeV/fm^3
+GAMMA = gamma(EOS_POINT_1, EOS_POINT_2)
+KAPPA = kappa(EOS_POINT_1, GAMMA)
+KAPPA_PRIME = kappa_prime(KAPPA, GAMMA)
+
+
+def eos_epsilon(p_prime):
+    return (p_prime / KAPPA_PRIME) ** (1 / GAMMA)
+
+
+G_NU = 1.4766  # km/solar-mass
+a = 1 / sqrt(G_NU * EPSILON_0)
+b = 1 / sqrt(G_NU**3 * EPSILON_0)
 
 
 def mass_nu(m_prime):
@@ -22,10 +56,6 @@ def mass_nu(m_prime):
 
 def radius_nu(r_prime):
     return a * r_prime
-
-
-def eos_epsilon(p_prime):
-    return (p_prime / KAPPA_PRIME) ** (1 / GAMMA)
 
 
 def tov_rhs(r, state):
@@ -72,7 +102,21 @@ def main():
     r, m = solve_tov(p_prime)
     r = radius_nu(r)
     m = mass_nu(m)
-    print(f"{r=} {m=}")
+    print(f"{r = } km | {m = } solar masses")
+    ...
+    # search_space = np.logspace(start=1, stop=3, num=50, base=10)
+    # radii_km = []
+    # masses_sm = []
+    # for p_c in search_space:
+    #     p_c_scaled = p_c * MEV_PER_FM3_TO_SM_PER_KM_3
+    #     p_prime = p_c_scaled / EPSILON_0
+    #     r_prime, m_prime = solve_tov(p_prime)
+    #     r = radius_nu(r_prime)
+    #     m = mass_nu(m_prime)
+    #     radii_km.append(r)
+    #     masses_sm.append(m)
+    # print(json.dumps(radii_km))
+    # print(json.dumps(masses_sm))
 
 
 if __name__ == "__main__":
