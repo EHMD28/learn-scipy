@@ -93,30 +93,30 @@ def solve_tov(p_c) -> tuple[float, float]:
     )
     r_solutions = solutions.t
     m_solutions = solutions.y[1]
-    return (r_solutions[-1], m_solutions[-1])
+    return (max(r_solutions), max(m_solutions))
 
 
-def main():
+def test_single_p_c():
     p_c = 100 * MEV_PER_FM3_TO_SM_PER_KM_3
     p_prime = p_c / EPSILON_0
     r, m = solve_tov(p_prime)
     r = radius_nu(r)
     m = mass_nu(m)
+    # For Pressure = 100 MeV/fm^3
+    # Radius = 7.473417814092245 km
+    # Mass = 0.5972517874652591 solar masses
     print(f"{r = } km | {m = } solar masses")
-    ...
-    # search_space = np.logspace(start=1, stop=3, num=50, base=10)
-    # radii_km = []
-    # masses_sm = []
-    # for p_c in search_space:
-    #     p_c_scaled = p_c * MEV_PER_FM3_TO_SM_PER_KM_3
-    #     p_prime = p_c_scaled / EPSILON_0
-    #     r_prime, m_prime = solve_tov(p_prime)
-    #     r = radius_nu(r_prime)
-    #     m = mass_nu(m_prime)
-    #     radii_km.append(r)
-    #     masses_sm.append(m)
-    # print(json.dumps(radii_km))
-    # print(json.dumps(masses_sm))
+
+
+def main():
+    pressure_range = np.logspace(0, 3, num=50)
+    for p_c in pressure_range:
+        # Convert central pressure to the correct units.
+        p_c = p_c * MEV_PER_FM3_TO_SM_PER_KM_3
+        p_prime = p_c / EPSILON_0
+        r, m = solve_tov(p_prime)
+        r = radius_nu(r)
+        m = mass_nu(m)
 
 
 if __name__ == "__main__":
